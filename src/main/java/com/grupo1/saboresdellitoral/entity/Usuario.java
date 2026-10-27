@@ -31,7 +31,7 @@ public class Usuario {
 	private String username;
 
 	@Column(name = "password_hash", nullable = false, length = 60)
-	private String passwordHash;
+	private String password;
 
 	@Column(name = "nombre_completo", nullable = false, length = 100)
 	private String nombreCompleto;

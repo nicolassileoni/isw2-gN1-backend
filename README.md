@@ -47,7 +47,20 @@ La consola de H2 está en `http://localhost:8080/h2-console`:
 - Usuario: `sa`
 - Contraseña: vacía
 
-El script de datos también carga el usuario `admin` con la contraseña `Admin2026!`. Por ahora no hay login implementado; ese usuario se va a usar más adelante.
+El script de datos carga el usuario inicial `admin` con la contraseña `Admin2026!`. Las contraseñas se guardan en texto plano porque el objetivo del trabajo es didáctico.
+
+## Usuarios y login
+
+El login valida usuario y contraseña y devuelve los datos del usuario. No se usan tokens, JWT ni Spring Security.
+
+- `POST /api/auth/login`
+- `GET /api/usuarios`
+- `POST /api/usuarios`
+- `PUT /api/usuarios/{id}`
+- `PATCH /api/usuarios/{id}/password`
+- `PATCH /api/usuarios/{id}/activo`
+
+Todos los endpoints quedan abiertos; no se implementa autorización por roles.
 
 ## Estructura
 

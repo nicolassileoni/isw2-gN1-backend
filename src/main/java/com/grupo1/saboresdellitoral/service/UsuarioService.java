@@ -2,7 +2,6 @@ package com.grupo1.saboresdellitoral.service;
 
 import java.util.List;
 
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +21,7 @@ public class UsuarioService {
 	private static final int USERNAME_MAX = 40;
 	private static final int NOMBRE_MAX = 100;
 	private static final int PASSWORD_MIN = 8;
+	private static final int PASSWORD_MAX = 60;
 
 	private final UsuarioRepository usuarioRepository;
 
@@ -51,7 +51,7 @@ public class UsuarioService {
 
 		Usuario usuario = new Usuario();
 		usuario.setUsername(username);
-		usuario.setPasswordHash(BCrypt.hashpw(password, BCrypt.gensalt(10)));
+		usuario.setPassword(password);
 		usuario.setNombreCompleto(nombreCompleto);
 		usuario.setRol(rol);
 		usuario.setActivo(true);
@@ -60,21 +60,14 @@ public class UsuarioService {
 	}
 
 	@Transactional
-	public UsuarioResponse actualizar(Integer id, ActualizarUsuarioRequest request, Integer usuarioAutenticadoId) {
+	public UsuarioResponse actualizar(Integer id, ActualizarUsuarioRequest request) {
 		Usuario usuario = buscar(id);
 		if (request == null) {
 			throw new SolicitudInvalidaException("La solicitud es obligatoria");
 		}
 
-		String nombreCompleto = normalizarNombre(request.nombreCompleto());
-		Rol rol = validarRol(request.rol());
-
-		if (id.equals(usuarioAutenticadoId) && rol != Rol.ADMIN) {
-			throw new ReglaDeNegocioException("Un administrador no puede quitarse el rol de administrador");
-		}
-
-		usuario.setNombreCompleto(nombreCompleto);
-		usuario.setRol(rol);
+		usuario.setNombreCompleto(normalizarNombre(request.nombreCompleto()));
+		usuario.setRol(validarRol(request.rol()));
 
 		return toResponse(usuarioRepository.save(usuario));
 	}
@@ -82,20 +75,15 @@ public class UsuarioService {
 	@Transactional
 	public UsuarioResponse cambiarPassword(Integer id, String password) {
 		Usuario usuario = buscar(id);
-		String passwordValidada = validarPassword(password);
-		usuario.setPasswordHash(BCrypt.hashpw(passwordValidada, BCrypt.gensalt(10)));
+		usuario.setPassword(validarPassword(password));
 
 		return toResponse(usuarioRepository.save(usuario));
 	}
 
 	@Transactional
-	public UsuarioResponse cambiarActivo(Integer id, Boolean activo, Integer usuarioAutenticadoId) {
+	public UsuarioResponse cambiarActivo(Integer id, Boolean activo) {
 		if (activo == null) {
 			throw new SolicitudInvalidaException("El campo activo es obligatorio");
-		}
-
-		if (id.equals(usuarioAutenticadoId) && !activo) {
-			throw new ReglaDeNegocioException("Un administrador no puede desactivarse a sí mismo");
 		}
 
 		Usuario usuario = buscar(id);
@@ -138,9 +126,9 @@ public class UsuarioService {
 	}
 
 	private String validarPassword(String password) {
-		if (password == null || password.length() < PASSWORD_MIN) {
+		if (password == null || password.length() < PASSWORD_MIN || password.length() > PASSWORD_MAX) {
 			throw new SolicitudInvalidaException(
-					"La contraseña debe tener al menos " + PASSWORD_MIN + " caracteres");
+					"La contraseña debe tener entre " + PASSWORD_MIN + " y " + PASSWORD_MAX + " caracteres");
 		}
 
 		return password;

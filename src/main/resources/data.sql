@@ -4,9 +4,9 @@
 -- Locales, productos, clientes, pedidos e ítems arrancan vacíos.
 -- =====================================================================
 
--- Administrador inicial: usuario admin, contraseña Admin2026! (guardada con BCrypt)
+-- Administrador inicial: usuario admin, contraseña Admin2026!
 INSERT INTO usuario (id, username, password_hash, nombre_completo, rol, activo)
-VALUES (1, 'admin', '$2a$10$nlQuA4lskuCHKf20.SP0Y.qxRBSzebNuT5bVGy43ySrDtDMz9ryQ2', 'Administrador de Sabores', 'ADMIN', TRUE);
+VALUES (1, 'admin', 'Admin2026!', 'Administrador de Sabores', 'ADMIN', TRUE);
 
 -- Categorías de la carta (comunes a todos los locales)
 INSERT INTO categoria (id, nombre) VALUES (1, 'Pizzas');

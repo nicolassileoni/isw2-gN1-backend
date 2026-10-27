@@ -1,7 +1,6 @@
 package com.grupo1.saboresdellitoral;
 
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -11,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -46,16 +44,18 @@ class UsuariosTests {
 	private UsuarioRepository usuarioRepository;
 
 	@Test
-	void loginAdminDevuelveTokenNombreYRolSinPassword() throws Exception {
+	void loginAdminDevuelveDatosSinPassword() throws Exception {
 		mockMvc.perform(post("/api/auth/login")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(new LoginRequest("admin", "Admin2026!"))))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.token").isNotEmpty())
+				.andExpect(jsonPath("$.id").value(1))
+				.andExpect(jsonPath("$.username").value("admin"))
 				.andExpect(jsonPath("$.nombreCompleto").value("Administrador de Sabores"))
 				.andExpect(jsonPath("$.rol").value("ADMIN"))
 				.andExpect(jsonPath("$.password").doesNotExist())
-				.andExpect(jsonPath("$.passwordHash").doesNotExist());
+				.andExpect(jsonPath("$.passwordHash").doesNotExist())
+				.andExpect(jsonPath("$.token").doesNotExist());
 	}
 
 	@Test
@@ -83,22 +83,11 @@ class UsuariosTests {
 	}
 
 	@Test
-	void endpointUsuariosRequiereToken() throws Exception {
-		mockMvc.perform(get("/api/usuarios"))
-				.andExpect(status().isUnauthorized());
-
-		mockMvc.perform(get("/api/usuarios").header("Authorization", "Bearer token-invalido"))
-				.andExpect(status().isUnauthorized());
-	}
-
-	@Test
-	void creaUsuarioYGuardaPasswordHasheada() throws Exception {
-		String adminToken = loginAdmin();
+	void creaUsuarioYGuardaPasswordSimple() throws Exception {
 		CrearUsuarioRequest request = new CrearUsuarioRequest("operador1", "Password123", "Operador Uno",
 				Rol.OPERADOR);
 
 		mockMvc.perform(post("/api/usuarios")
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isCreated())
@@ -113,18 +102,14 @@ class UsuariosTests {
 				.andExpect(jsonPath("$.passwordHash").doesNotExist());
 
 		Usuario usuario = usuarioRepository.findByUsername("operador1").orElseThrow();
-		assertNotEquals("Password123", usuario.getPasswordHash());
-		assertTrue(usuario.getPasswordHash().startsWith("$2"));
-		assertTrue(BCrypt.checkpw("Password123", usuario.getPasswordHash()));
+		assertEquals("Password123", usuario.getPassword());
 	}
 
 	@Test
 	void rechazaUsernameDuplicado() throws Exception {
-		String adminToken = loginAdmin();
-		crearOperador(adminToken, "operador1");
+		crearOperador("operador1");
 
 		mockMvc.perform(post("/api/usuarios")
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(new CrearUsuarioRequest("operador1", "Password123",
 						"Otro Operador", Rol.OPERADOR))))
@@ -132,24 +117,25 @@ class UsuariosTests {
 	}
 
 	@Test
-	void rechazaPasswordCorta() throws Exception {
-		String adminToken = loginAdmin();
-
+	void rechazaPasswordInvalida() throws Exception {
 		mockMvc.perform(post("/api/usuarios")
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(new CrearUsuarioRequest("operador2", "1234567",
 						"Operador Dos", Rol.OPERADOR))))
+				.andExpect(status().isBadRequest());
+
+		mockMvc.perform(post("/api/usuarios")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CrearUsuarioRequest("operador3", "1".repeat(61),
+						"Operador Tres", Rol.OPERADOR))))
 				.andExpect(status().isBadRequest());
 	}
 
 	@Test
 	void actualizaNombreYRol() throws Exception {
-		String adminToken = loginAdmin();
-		Integer id = crearOperador(adminToken, "operador1");
+		Integer id = crearOperador("operador1");
 
 		mockMvc.perform(put("/api/usuarios/" + id)
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(new ActualizarUsuarioRequest("Operador Actualizado",
 						Rol.ADMIN))))
@@ -161,37 +147,10 @@ class UsuariosTests {
 	}
 
 	@Test
-	void adminNoPuedeQuitarseRolAdmin() throws Exception {
-		String adminToken = loginAdmin();
-		Usuario admin = usuarioRepository.findByUsername("admin").orElseThrow();
-
-		mockMvc.perform(put("/api/usuarios/" + admin.getId())
-				.header("Authorization", bearer(adminToken))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(new ActualizarUsuarioRequest(admin.getNombreCompleto(),
-						Rol.OPERADOR))))
-				.andExpect(status().isConflict());
-	}
-
-	@Test
-	void adminNoPuedeDesactivarse() throws Exception {
-		String adminToken = loginAdmin();
-		Usuario admin = usuarioRepository.findByUsername("admin").orElseThrow();
-
-		mockMvc.perform(patch("/api/usuarios/" + admin.getId() + "/activo")
-				.header("Authorization", bearer(adminToken))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(new CambioActivoRequest(false))))
-				.andExpect(status().isConflict());
-	}
-
-	@Test
 	void cambiaPasswordYLoginFunciona() throws Exception {
-		String adminToken = loginAdmin();
-		Integer id = crearOperador(adminToken, "operador1");
+		Integer id = crearOperador("operador1");
 
 		mockMvc.perform(patch("/api/usuarios/" + id + "/password")
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(new CambiarPasswordRequest("NuevaClave123"))))
 				.andExpect(status().isOk());
@@ -209,13 +168,10 @@ class UsuariosTests {
 	}
 
 	@Test
-	void desactivaUsuarioYNoPuedeIngresar() throws Exception {
-		String adminToken = loginAdmin();
-		Integer id = crearOperador(adminToken, "operador1");
-		String operadorToken = login("operador1", "Password123");
+	void desactivaYReactivaUsuario() throws Exception {
+		Integer id = crearOperador("operador1");
 
 		mockMvc.perform(patch("/api/usuarios/" + id + "/activo")
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(new CambioActivoRequest(false))))
 				.andExpect(status().isOk())
@@ -226,26 +182,23 @@ class UsuariosTests {
 				.content(objectMapper.writeValueAsString(new LoginRequest("operador1", "Password123"))))
 				.andExpect(status().isUnauthorized());
 
-		mockMvc.perform(get("/api/usuarios").header("Authorization", bearer(operadorToken)))
-				.andExpect(status().isUnauthorized());
-	}
+		mockMvc.perform(patch("/api/usuarios/" + id + "/activo")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new CambioActivoRequest(true))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.activo").value(true));
 
-	@Test
-	void operadorNoPuedeAccederAUsuarios() throws Exception {
-		String adminToken = loginAdmin();
-		crearOperador(adminToken, "operador1");
-		String operadorToken = login("operador1", "Password123");
-
-		mockMvc.perform(get("/api/usuarios").header("Authorization", bearer(operadorToken)))
-				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/api/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(new LoginRequest("operador1", "Password123"))))
+				.andExpect(status().isOk());
 	}
 
 	@Test
 	void listaUsuariosSinPassword() throws Exception {
-		String adminToken = loginAdmin();
-		crearOperador(adminToken, "operador1");
+		crearOperador("operador1");
 
-		mockMvc.perform(get("/api/usuarios").header("Authorization", bearer(adminToken)))
+		mockMvc.perform(get("/api/usuarios"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].username").value("admin"))
 				.andExpect(jsonPath("$[1].username").value("operador1"))
@@ -253,26 +206,11 @@ class UsuariosTests {
 				.andExpect(jsonPath("$[0].passwordHash").doesNotExist());
 	}
 
-	private String loginAdmin() throws Exception {
-		return login("admin", "Admin2026!");
-	}
-
-	private String login(String username, String password) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/auth/login")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(new LoginRequest(username, password))))
-				.andExpect(status().isOk())
-				.andReturn();
-
-		return objectMapper.readTree(result.getResponse().getContentAsString()).get("token").asText();
-	}
-
-	private Integer crearOperador(String adminToken, String username) throws Exception {
+	private Integer crearOperador(String username) throws Exception {
 		CrearUsuarioRequest request = new CrearUsuarioRequest(username, "Password123", "Operador " + username,
 				Rol.OPERADOR);
 
 		MvcResult result = mockMvc.perform(post("/api/usuarios")
-				.header("Authorization", bearer(adminToken))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isCreated())
@@ -281,14 +219,10 @@ class UsuariosTests {
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asInt();
 	}
 
-	private String bearer(String token) {
-		return "Bearer " + token;
-	}
-
 	private Usuario guardarUsuario(String username, String password, String nombreCompleto, Rol rol, boolean activo) {
 		Usuario usuario = new Usuario();
 		usuario.setUsername(username);
-		usuario.setPasswordHash(BCrypt.hashpw(password, BCrypt.gensalt(10)));
+		usuario.setPassword(password);
 		usuario.setNombreCompleto(nombreCompleto);
 		usuario.setRol(rol);
 		usuario.setActivo(activo);

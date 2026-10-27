@@ -1,6 +1,5 @@
 package com.grupo1.saboresdellitoral.service;
 
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,11 +13,9 @@ import com.grupo1.saboresdellitoral.repository.UsuarioRepository;
 public class AutenticacionService {
 
 	private final UsuarioRepository usuarioRepository;
-	private final TokenService tokenService;
 
-	public AutenticacionService(UsuarioRepository usuarioRepository, TokenService tokenService) {
+	public AutenticacionService(UsuarioRepository usuarioRepository) {
 		this.usuarioRepository = usuarioRepository;
-		this.tokenService = tokenService;
 	}
 
 	@Transactional(readOnly = true)
@@ -31,19 +28,10 @@ public class AutenticacionService {
 		Usuario usuario = usuarioRepository.findByUsername(request.username().trim())
 				.orElseThrow(() -> new NoAutorizadoException("Credenciales inválidas"));
 
-		if (!Boolean.TRUE.equals(usuario.getActivo()) || !passwordValida(request.password(), usuario.getPasswordHash())) {
+		if (!Boolean.TRUE.equals(usuario.getActivo()) || !usuario.getPassword().equals(request.password())) {
 			throw new NoAutorizadoException("Credenciales inválidas");
 		}
 
-		String token = tokenService.crear(usuario.getId());
-		return new LoginResponse(token, usuario.getNombreCompleto(), usuario.getRol());
-	}
-
-	private boolean passwordValida(String password, String passwordHash) {
-		try {
-			return BCrypt.checkpw(password, passwordHash);
-		} catch (IllegalArgumentException exception) {
-			return false;
-		}
+		return new LoginResponse(usuario.getId(), usuario.getUsername(), usuario.getNombreCompleto(), usuario.getRol());
 	}
 }

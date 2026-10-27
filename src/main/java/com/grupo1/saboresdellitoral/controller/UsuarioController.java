@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,9 +42,8 @@ public class UsuarioController {
 	}
 
 	@PutMapping("/{id}")
-	public UsuarioResponse actualizar(@PathVariable Integer id, @RequestBody ActualizarUsuarioRequest request,
-			@RequestAttribute("usuarioId") Integer usuarioAutenticadoId) {
-		return usuarioService.actualizar(id, request, usuarioAutenticadoId);
+	public UsuarioResponse actualizar(@PathVariable Integer id, @RequestBody ActualizarUsuarioRequest request) {
+		return usuarioService.actualizar(id, request);
 	}
 
 	@PatchMapping("/{id}/password")
@@ -56,8 +54,7 @@ public class UsuarioController {
 
 	@PatchMapping("/{id}/activo")
 	public UsuarioResponse cambiarActivo(@PathVariable Integer id,
-			@RequestBody(required = false) CambioActivoRequest request,
-			@RequestAttribute("usuarioId") Integer usuarioAutenticadoId) {
-		return usuarioService.cambiarActivo(id, request == null ? null : request.activo(), usuarioAutenticadoId);
+			@RequestBody(required = false) CambioActivoRequest request) {
+		return usuarioService.cambiarActivo(id, request == null ? null : request.activo());
 	}
 }

@@ -4,20 +4,30 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.grupo1.saboresdellitoral.entity.EstadoPedido;
 import com.grupo1.saboresdellitoral.entity.Pedido;
 
 public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
 
+	@EntityGraph(attributePaths = { "local", "items", "items.producto" })
 	Optional<Pedido> findByCodigoSeguimiento(String codigoSeguimiento);
 
 	boolean existsByCodigoSeguimiento(String codigoSeguimiento);
 
+	@EntityGraph(attributePaths = { "local", "cliente" })
 	List<Pedido> findByEstadoOrderByFechaHoraAsc(EstadoPedido estado);
 
+	@EntityGraph(attributePaths = { "local", "cliente" })
 	List<Pedido> findByEstadoInOrderByFechaHoraAsc(Collection<EstadoPedido> estados);
+
+	@EntityGraph(attributePaths = { "local", "cliente", "repartidor", "items", "items.producto" })
+	@Query("select p from Pedido p where p.id = :id")
+	Optional<Pedido> buscarDetallePorId(@Param("id") Integer id);
 
 	List<Pedido> findByRepartidorIdAndEstadoOrderByFechaHoraAsc(Integer repartidorId, EstadoPedido estado);
 

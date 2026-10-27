@@ -15,6 +15,7 @@ import com.grupo1.saboresdellitoral.dto.AvanzarPedidoRequest;
 import com.grupo1.saboresdellitoral.dto.PedidoCreadoResponse;
 import com.grupo1.saboresdellitoral.dto.PedidoDetalleResponse;
 import com.grupo1.saboresdellitoral.service.PedidoService;
+import com.grupo1.saboresdellitoral.service.PedidoCancelacionService;
 import com.grupo1.saboresdellitoral.service.PedidoTransicionService;
 
 @RestController
@@ -23,10 +24,13 @@ public class PedidoController {
 
 	private final PedidoService pedidoService;
 	private final PedidoTransicionService pedidoTransicionService;
+	private final PedidoCancelacionService pedidoCancelacionService;
 
-	public PedidoController(PedidoService pedidoService, PedidoTransicionService pedidoTransicionService) {
+	public PedidoController(PedidoService pedidoService, PedidoTransicionService pedidoTransicionService,
+			PedidoCancelacionService pedidoCancelacionService) {
 		this.pedidoService = pedidoService;
 		this.pedidoTransicionService = pedidoTransicionService;
+		this.pedidoCancelacionService = pedidoCancelacionService;
 	}
 
 	@PostMapping
@@ -41,5 +45,10 @@ public class PedidoController {
 			@RequestBody(required = false) AvanzarPedidoRequest request) {
 		Integer repartidorId = request == null ? null : request.repartidorId();
 		return pedidoTransicionService.avanzar(id, repartidorId);
+	}
+
+	@PatchMapping("/{id}/cancelar")
+	public PedidoDetalleResponse cancelar(@PathVariable Integer id) {
+		return pedidoCancelacionService.cancelar(id);
 	}
 }

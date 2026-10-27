@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.grupo1.saboresdellitoral.dto.ErrorResponse;
@@ -39,7 +40,8 @@ public class ManejadorGlobalDeExcepciones {
 		return respuesta(HttpStatus.UNAUTHORIZED, exception.getMessage());
 	}
 
-	@ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
+	@ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class,
+			MissingServletRequestParameterException.class})
 	public ResponseEntity<ErrorResponse> manejarSolicitudInvalida(Exception exception) {
 		return respuesta(HttpStatus.BAD_REQUEST, "La solicitud contiene datos inválidos.");
 	}

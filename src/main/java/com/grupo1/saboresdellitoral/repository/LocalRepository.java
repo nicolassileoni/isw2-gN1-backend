@@ -13,5 +13,9 @@ public interface LocalRepository extends JpaRepository<Local, Integer> {
 
 	boolean existsByNombre(String nombre);
 
+	boolean existsByNombreAndIdNot(String nombre, Integer id);
+
+	List<Local> findAllByOrderByNombreAsc();
+
 	List<Local> findByActivoTrueOrderByNombreAsc();
 }

@@ -2,15 +2,15 @@ package com.grupo1.saboresdellitoral.service;
 
 import java.util.List;
 
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.grupo1.saboresdellitoral.dto.LocalAdminResponse;
 import com.grupo1.saboresdellitoral.dto.LocalRequest;
 import com.grupo1.saboresdellitoral.entity.Local;
+import com.grupo1.saboresdellitoral.exception.RecursoNoEncontradoException;
+import com.grupo1.saboresdellitoral.exception.ReglaDeNegocioException;
+import com.grupo1.saboresdellitoral.exception.SolicitudInvalidaException;
 import com.grupo1.saboresdellitoral.repository.LocalRepository;
 
 @Service
@@ -40,7 +40,7 @@ public class LocalService {
 		String telefono = normalizarOpcional(request.telefono(), TELEFONO_MAX, "El teléfono");
 
 		if (localRepository.existsByNombre(nombre)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un local con ese nombre");
+			throw new ReglaDeNegocioException("Ya existe un local con ese nombre");
 		}
 
 		Local local = new Local();
@@ -49,11 +49,7 @@ public class LocalService {
 		local.setTelefono(telefono);
 		local.setActivo(true);
 
-		try {
-			return toResponse(localRepository.save(local));
-		} catch (DataIntegrityViolationException e) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un local con ese nombre");
-		}
+		return toResponse(localRepository.save(local));
 	}
 
 	@Transactional
@@ -64,24 +60,20 @@ public class LocalService {
 		String telefono = normalizarOpcional(request.telefono(), TELEFONO_MAX, "El teléfono");
 
 		if (localRepository.existsByNombreAndIdNot(nombre, id)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un local con ese nombre");
+			throw new ReglaDeNegocioException("Ya existe un local con ese nombre");
 		}
 
 		local.setNombre(nombre);
 		local.setDireccion(direccion);
 		local.setTelefono(telefono);
 
-		try {
-			return toResponse(localRepository.save(local));
-		} catch (DataIntegrityViolationException e) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un local con ese nombre");
-		}
+		return toResponse(localRepository.save(local));
 	}
 
 	@Transactional
 	public LocalAdminResponse cambiarActivo(Integer id, Boolean activo) {
 		if (activo == null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El campo activo es obligatorio");
+			throw new SolicitudInvalidaException("El campo activo es obligatorio");
 		}
 
 		Local local = buscarLocal(id);
@@ -92,17 +84,17 @@ public class LocalService {
 
 	private Local buscarLocal(Integer id) {
 		return localRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Local no encontrado"));
+				.orElseThrow(() -> new RecursoNoEncontradoException("Local no encontrado"));
 	}
 
 	private String normalizarNombre(LocalRequest request) {
 		if (request == null || request.nombre() == null || request.nombre().isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre es obligatorio");
+			throw new SolicitudInvalidaException("El nombre es obligatorio");
 		}
 
 		String nombre = request.nombre().trim();
 		if (nombre.length() > NOMBRE_MAX) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+			throw new SolicitudInvalidaException(
 					"El nombre no puede superar los " + NOMBRE_MAX + " caracteres");
 		}
 
@@ -120,7 +112,7 @@ public class LocalService {
 		}
 
 		if (normalizado.length() > max) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+			throw new SolicitudInvalidaException(
 					campo + " no puede superar los " + max + " caracteres");
 		}
 

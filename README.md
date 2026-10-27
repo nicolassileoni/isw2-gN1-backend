@@ -15,6 +15,7 @@ Backend de la app de delivery del proyecto integrador de Ingeniería de Software
 - Spring Boot 4.1.1
 - Spring Data JPA
 - H2 en archivo
+- BCrypt (jBCrypt)
 - Maven Wrapper
 
 ## Cómo levantarlo
@@ -47,7 +48,21 @@ La consola de H2 está en `http://localhost:8080/h2-console`:
 - Usuario: `sa`
 - Contraseña: vacía
 
-El script de datos también carga el usuario `admin` con la contraseña `Admin2026!`. Por ahora no hay login implementado; ese usuario se va a usar más adelante.
+El script de datos carga el usuario inicial `admin` con la contraseña `Admin2026!`. Las contraseñas se guardan con BCrypt.
+
+## Usuarios y login
+
+El login devuelve un token opaco en memoria, válido por 8 horas. No se usa Spring Security ni JWT.
+El token se envía en el header `Authorization: Bearer <token>`.
+
+- `POST /api/auth/login` (público)
+- `GET /api/usuarios` (ADMIN)
+- `POST /api/usuarios` (ADMIN)
+- `PUT /api/usuarios/{id}` (ADMIN)
+- `PATCH /api/usuarios/{id}/password` (ADMIN)
+- `PATCH /api/usuarios/{id}/activo` (ADMIN)
+
+Por ahora la protección con token aplica solo a `/api/usuarios`. El resto de los endpoints sigue abierto hasta que se extienda la autenticación.
 
 ## Estructura
 

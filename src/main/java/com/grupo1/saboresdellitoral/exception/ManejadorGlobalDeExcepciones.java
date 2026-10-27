@@ -34,6 +34,16 @@ public class ManejadorGlobalDeExcepciones {
 		return respuesta(HttpStatus.CONFLICT, exception.getMessage());
 	}
 
+	@ExceptionHandler(NoAutorizadoException.class)
+	public ResponseEntity<ErrorResponse> manejarNoAutorizado(NoAutorizadoException exception) {
+		return respuesta(HttpStatus.UNAUTHORIZED, exception.getMessage());
+	}
+
+	@ExceptionHandler(AccesoDenegadoException.class)
+	public ResponseEntity<ErrorResponse> manejarAccesoDenegado(AccesoDenegadoException exception) {
+		return respuesta(HttpStatus.FORBIDDEN, exception.getMessage());
+	}
+
 	@ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
 	public ResponseEntity<ErrorResponse> manejarSolicitudInvalida(Exception exception) {
 		return respuesta(HttpStatus.BAD_REQUEST, "La solicitud contiene datos inválidos.");

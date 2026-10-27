@@ -3,6 +3,7 @@ package com.grupo1.saboresdellitoral.repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.LockModeType;
 
@@ -39,4 +40,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Integer> {
 	List<Pedido> findByRepartidorIdAndEstadoOrderByFechaHoraAsc(Integer repartidorId, EstadoPedido estado);
 
 	long countByRepartidorIdAndEstado(Integer repartidorId, EstadoPedido estado);
+
+	List<Pedido> findByEstadoAndFechaHoraGreaterThanEqualAndFechaHoraLessThan(EstadoPedido estado,
+			LocalDateTime desde, LocalDateTime hasta);
 }

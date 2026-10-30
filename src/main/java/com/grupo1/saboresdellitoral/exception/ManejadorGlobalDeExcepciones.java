@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.grupo1.saboresdellitoral.dto.ErrorResponse;
@@ -44,6 +45,11 @@ public class ManejadorGlobalDeExcepciones {
 			MissingServletRequestParameterException.class})
 	public ResponseEntity<ErrorResponse> manejarSolicitudInvalida(Exception exception) {
 		return respuesta(HttpStatus.BAD_REQUEST, "La solicitud contiene datos inválidos.");
+	}
+
+	@ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<ErrorResponse> manejarRecursoEstaticoNoEncontrado(NoResourceFoundException exception) {
+		return respuesta(HttpStatus.NOT_FOUND, "No se encontró el recurso solicitado.");
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)

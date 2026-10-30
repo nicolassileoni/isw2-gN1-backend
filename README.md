@@ -1,6 +1,15 @@
-# Sabores del Litoral
+# Sabores del Litoral — Backend
 
-Backend REST para la plataforma de delivery del proyecto integrador de Ingeniería de Software II.
+API REST para la plataforma de delivery del proyecto integrador de Ingeniería de Software II.
+
+## Tecnologías
+
+- Java 21
+- Spring Boot 4.1.1
+- Spring Security + JWT
+- Spring Data JPA
+- H2 en archivo
+- Maven Wrapper
 
 ## Requisitos y ejecución
 
@@ -16,21 +25,53 @@ Se necesita JDK 21. Maven está incluido mediante el wrapper.
 
 La API queda disponible en `http://localhost:8080`.
 
-## Base de datos y H2
+## Configuración
+
+### Base de datos
 
 La aplicación usa H2 en archivo en `./data/sabores_litoral`. Al iniciar ejecuta:
 
 - `src/main/resources/schema.sql`: crea las tablas.
 - `src/main/resources/data.sql`: carga categorías, repartidores y el administrador inicial.
-- `src/main/resources/data-demo.sql`: agrega locales, productos, clientes y pedidos de demostración.
+- `src/main/resources/data-demo.sql`: agrega locales, productos, clientes, usuarios y pedidos de demostración.
 
-Con la configuración actual, `spring.sql.init.mode=always` recrea los datos al iniciar. Para conservarlos entre reinicios se puede cambiar a `never`.
+Con la configuración actual, `spring.sql.init.mode=always` recrea la base al iniciar. Para conservar los datos entre reinicios se puede cambiar a `never`.
+
+La consola H2 está disponible en `http://localhost:8080/h2-console`:
+
+| Campo | Valor |
+|---|---|
+| JDBC URL | `jdbc:h2:file:./data/sabores_litoral` |
+| Usuario | `sa` |
+| Contraseña | vacía |
+
+### Seguridad
+
+El login valida la contraseña con BCrypt y devuelve un JWT de 8 horas. Las rutas protegidas esperan:
+
+```http
+Authorization: Bearer <token>
+```
+
+| Requisito | Acceso |
+|---|---|
+| Login, catálogo público, creación de pedido y seguimiento | Público |
+| Pedidos, detalle, avance, cancelación, repartidores y en la calle | `ADMIN` u `OPERADOR` |
+| Locales administrativos, productos, ventas y usuarios | `ADMIN` |
+
+- Sin token o con token inválido: `401`.
+- Con token de operador en una ruta de administrador: `403`.
+- Un usuario inactivo no puede ingresar.
+- RN-09 se valida en el backend: un administrador no puede desactivarse ni quitarse el rol.
+- Las contraseñas nunca se devuelven en las respuestas.
+
+El secreto se configura con `JWT_SECRET`. En desarrollo hay un valor por defecto en `application.properties`; en producción se debe definir un secreto propio de al menos 32 caracteres.
+
+CORS está habilitado para la app web local. La app nativa de Expo Go no depende de CORS.
 
 ### Datos de demostración
 
 La configuración local carga automáticamente `data-demo.sql`. Los tests no lo cargan, porque usan solo `data.sql`.
-
-Usuarios disponibles:
 
 | Usuario | Contraseña | Rol |
 | --- | --- | --- |
@@ -48,26 +89,23 @@ Pedidos precargados:
 
 Para desactivar los datos de demostración, quitar `classpath:data-demo.sql` de `spring.sql.init.data-locations` en `application.properties`.
 
-La consola H2 está en `http://localhost:8080/h2-console`:
-
-- JDBC URL: `jdbc:h2:file:./data/sabores_litoral`
-- Usuario: `sa`
-- Contraseña: vacía
-
 ## Endpoints principales
 
-| Área | Endpoints |
-| --- | --- |
-| Catálogo | `GET /api/locales`, `GET /api/locales/{id}/carta`, `GET /api/categorias`, `GET /api/repartidores` |
-| Locales y productos | `GET /api/locales/todos`, `POST/PUT/PATCH /api/locales`, `GET/POST/PUT/PATCH /api/productos` |
-| Pedidos | `POST /api/pedidos`, `GET /api/pedidos`, `GET /api/pedidos/{id}`, `GET /api/pedidos/seguimiento/{codigo}` |
-| Operación | `PATCH /api/pedidos/{id}/avanzar`, `PATCH /api/pedidos/{id}/cancelar`, `GET /api/repartidores/en-calle` |
-| Reportes | `GET /api/ventas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` |
-| Usuarios | `POST /api/auth/login`, `GET/POST/PUT/PATCH /api/usuarios` |
+| Área | Endpoints | Acceso |
+| --- | --- | --- |
+| Autenticación | `POST /api/auth/login` | Público |
+| Catálogo | `GET /api/locales`, `GET /api/locales/{id}/carta`, `GET /api/categorias` | Público |
+| Pedidos | `POST /api/pedidos`, `GET /api/pedidos/seguimiento/{codigo}` | Público |
+| Pedidos | `GET /api/pedidos`, `GET /api/pedidos/{id}`, `PATCH /api/pedidos/{id}/avanzar`, `PATCH /api/pedidos/{id}/cancelar` | Personal |
+| Repartidores | `GET /api/repartidores`, `GET /api/repartidores/en-calle` | Personal |
+| Locales | `GET /api/locales/todos`, `POST/PUT/PATCH /api/locales` | Admin |
+| Productos | `GET/POST/PUT/PATCH /api/productos` | Admin |
+| Ventas | `GET /api/ventas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` | Admin |
+| Usuarios | `GET/POST/PUT/PATCH /api/usuarios` | Admin |
 
 ## Tests
 
-Los tests usan H2 en memoria y no modifican la base de datos local.
+Los tests usan H2 en memoria y no modifican la base local.
 
 ```bash
 # Linux, macOS o Git Bash
@@ -77,36 +115,24 @@ Los tests usan H2 en memoria y no modifican la base de datos local.
 .\mvnw.cmd test
 ```
 
-## Seguridad
+La cobertura incluye catálogo, locales, productos, pedidos, transiciones, cancelación, ventas, repartidores, usuarios, RN-09 y seguridad JWT (`401`, `403`, BCrypt y CORS).
 
-El login valida usuario y contraseña con BCrypt y devuelve un JWT de 8 horas. Las rutas protegidas esperan:
+## Estructura
 
-```http
-Authorization: Bearer <token>
+```text
+src/main/java/com/grupo1/saboresdellitoral/
+├── config/        seguridad y configuración
+├── controller/    endpoints REST
+├── dto/           contratos de entrada y salida
+├── entity/        modelo JPA
+├── exception/     manejo centralizado de errores
+├── repository/    acceso a datos
+├── security/      JWT, filtro y respuestas 401/403
+└── service/       lógica de negocio
 ```
 
-- `GET /api/locales`, `GET /api/locales/{id}/carta`, `GET /api/categorias`, `POST /api/pedidos` y el seguimiento público no necesitan token.
-- Pedidos, repartidores y en la calle requieren `ADMIN` u `OPERADOR`.
-- Locales administrativos, productos, ventas y usuarios requieren `ADMIN`.
-- Sin token o con token inválido: `401`.
-- Con token de operador en una ruta de administrador: `403`.
-- RN-09 se valida en el backend: un admin no puede desactivarse ni quitarse el rol.
+## Alcance
 
-El secreto JWT se configura con `JWT_SECRET`. En desarrollo hay un valor por defecto en `application.properties`; en producción hay que definir uno propio de al menos 32 caracteres.
+No se incluyen cuentas de cliente, historial personal, pagos en línea, cupones, propinas, mapas, GPS ni tiempos estimados. Locales, productos y usuarios no se eliminan: se desactivan. Las categorías y los repartidores vienen precargados y solo se consultan.
 
-CORS está habilitado para la app web local. La app nativa de Expo Go no depende de CORS.
-
-## Cobertura funcional
-
-| Requisito | Rama y pruebas principales |
-| --- | --- |
-| RF-03, RN-10 | `feat/locales` · `LocalesTests` |
-| RF-04, RN-06 | `feat/productos` · `ProductosTests` |
-| RF-05 | `feat/catalogo` · `CatalogoTests` |
-| RF-06, RN-01/02/07/08 | `feat/pedidos-creacion` · `PedidoCreacionTests` |
-| RF-07, RF-08 | `feat/pedidos-consulta` · `PedidoConsultaTests` |
-| RF-09, RN-03/05 | `feat/pedidos-transiciones` · `PedidoTransicionTests` |
-| RF-10, RN-04 | `feat/pedidos-cancelacion` · `PedidoCancelacionTests` |
-| RF-11 | `feat/ventas` · `VentasTests` |
-| RF-12 | `feat/repartidores-calle` · `RepartidorCalleTests` |
-| RF-01, RF-02, RN-09, RNF-05/06 | `feat/seguridad-jwt` · `UsuariosTests`, `SeguridadTests` |
+La autenticación es stateless: no hay refresh token ni sesión del lado del servidor. Al expirar el token o reiniciar la app, el personal debe volver a ingresar.

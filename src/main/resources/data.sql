@@ -6,7 +6,7 @@
 
 -- Administrador inicial: usuario admin, contraseña Admin2026!
 INSERT INTO usuario (id, username, password_hash, nombre_completo, rol, activo)
-VALUES (1, 'admin', 'Admin2026!', 'Administrador de Sabores', 'ADMIN', TRUE);
+VALUES (1, 'admin', '$2a$10$ALl3dkcQal0SFMJ23PTVz.bF43Uthcd1Px9TKTkfqQ1Xvm7pozQV6', 'Administrador de Sabores', 'ADMIN', TRUE);
 
 -- Categorías de la carta (comunes a todos los locales)
 INSERT INTO categoria (id, nombre) VALUES (1, 'Pizzas');

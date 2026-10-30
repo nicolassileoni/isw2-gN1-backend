@@ -77,9 +77,24 @@ Los tests usan H2 en memoria y no modifican la base de datos local.
 .\mvnw.cmd test
 ```
 
-## Estado de autenticación
+## Seguridad
 
-El login actual valida credenciales, pero la autenticación con token y las restricciones por rol todavía están pendientes. Por ahora, los endpoints administrativos y de operación permanecen abiertos.
+El login valida usuario y contraseña con BCrypt y devuelve un JWT de 8 horas. Las rutas protegidas esperan:
+
+```http
+Authorization: Bearer <token>
+```
+
+- `GET /api/locales`, `GET /api/locales/{id}/carta`, `GET /api/categorias`, `POST /api/pedidos` y el seguimiento público no necesitan token.
+- Pedidos, repartidores y en la calle requieren `ADMIN` u `OPERADOR`.
+- Locales administrativos, productos, ventas y usuarios requieren `ADMIN`.
+- Sin token o con token inválido: `401`.
+- Con token de operador en una ruta de administrador: `403`.
+- RN-09 se valida en el backend: un admin no puede desactivarse ni quitarse el rol.
+
+El secreto JWT se configura con `JWT_SECRET`. En desarrollo hay un valor por defecto en `application.properties`; en producción hay que definir uno propio de al menos 32 caracteres.
+
+CORS está habilitado para la app web local. La app nativa de Expo Go no depende de CORS.
 
 ## Cobertura funcional
 
@@ -94,3 +109,4 @@ El login actual valida credenciales, pero la autenticación con token y las rest
 | RF-10, RN-04 | `feat/pedidos-cancelacion` · `PedidoCancelacionTests` |
 | RF-11 | `feat/ventas` · `VentasTests` |
 | RF-12 | `feat/repartidores-calle` · `RepartidorCalleTests` |
+| RF-01, RF-02, RN-09, RNF-05/06 | `feat/seguridad-jwt` · `UsuariosTests`, `SeguridadTests` |

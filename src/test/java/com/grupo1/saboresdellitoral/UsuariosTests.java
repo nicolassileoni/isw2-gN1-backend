@@ -1,6 +1,8 @@
 package com.grupo1.saboresdellitoral;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +33,9 @@ import com.grupo1.saboresdellitoral.entity.Rol;
 import com.grupo1.saboresdellitoral.entity.Usuario;
 import com.grupo1.saboresdellitoral.repository.UsuarioRepository;
 
+@WithMockUser(username = "admin", roles = "ADMIN")
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Transactional
 class UsuariosTests {
 
@@ -42,6 +47,9 @@ class UsuariosTests {
 
 	@Autowired
 	private UsuarioRepository usuarioRepository;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
 	@Test
 	void loginAdminDevuelveDatosSinPassword() throws Exception {
@@ -55,7 +63,8 @@ class UsuariosTests {
 				.andExpect(jsonPath("$.rol").value("ADMIN"))
 				.andExpect(jsonPath("$.password").doesNotExist())
 				.andExpect(jsonPath("$.passwordHash").doesNotExist())
-				.andExpect(jsonPath("$.token").doesNotExist());
+				.andExpect(jsonPath("$.token").isString())
+				.andExpect(jsonPath("$.token").isNotEmpty());
 	}
 
 	@Test
@@ -83,7 +92,7 @@ class UsuariosTests {
 	}
 
 	@Test
-	void creaUsuarioYGuardaPasswordSimple() throws Exception {
+	void creaUsuarioYGuardaPasswordConBCrypt() throws Exception {
 		CrearUsuarioRequest request = new CrearUsuarioRequest("operador1", "Password123", "Operador Uno",
 				Rol.OPERADOR);
 
@@ -102,7 +111,8 @@ class UsuariosTests {
 				.andExpect(jsonPath("$.passwordHash").doesNotExist());
 
 		Usuario usuario = usuarioRepository.findByUsername("operador1").orElseThrow();
-		assertEquals("Password123", usuario.getPassword());
+		assertNotEquals("Password123", usuario.getPassword());
+		assertTrue(passwordEncoder.matches("Password123", usuario.getPassword()));
 	}
 
 	@Test
@@ -222,7 +232,7 @@ class UsuariosTests {
 	private Usuario guardarUsuario(String username, String password, String nombreCompleto, Rol rol, boolean activo) {
 		Usuario usuario = new Usuario();
 		usuario.setUsername(username);
-		usuario.setPassword(password);
+		usuario.setPassword(passwordEncoder.encode(password));
 		usuario.setNombreCompleto(nombreCompleto);
 		usuario.setRol(rol);
 		usuario.setActivo(activo);

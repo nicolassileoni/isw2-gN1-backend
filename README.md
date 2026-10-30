@@ -21,9 +21,32 @@ La API queda disponible en `http://localhost:8080`.
 La aplicación usa H2 en archivo en `./data/sabores_litoral`. Al iniciar ejecuta:
 
 - `src/main/resources/schema.sql`: crea las tablas.
-- `src/main/resources/data.sql`: carga categorías, repartidores y datos iniciales.
+- `src/main/resources/data.sql`: carga categorías, repartidores y el administrador inicial.
+- `src/main/resources/data-demo.sql`: agrega locales, productos, clientes y pedidos de demostración.
 
 Con la configuración actual, `spring.sql.init.mode=always` recrea los datos al iniciar. Para conservarlos entre reinicios se puede cambiar a `never`.
+
+### Datos de demostración
+
+La configuración local carga automáticamente `data-demo.sql`. Los tests no lo cargan, porque usan solo `data.sql`.
+
+Usuarios disponibles:
+
+| Usuario | Contraseña | Rol |
+| --- | --- | --- |
+| `admin` | `Admin2026!` | `ADMIN` |
+| `operador` | `Operador2026!` | `OPERADOR` |
+
+Pedidos precargados:
+
+| Código | Estado | Local |
+| --- | --- | --- |
+| `DEMO0001` | `ENTREGADO` | Sabores del Puerto |
+| `DEMO0002` | `EN_CAMINO` | La Cocina de la Costa |
+| `DEMO0003` | `RECIBIDO` | Sabores del Puerto |
+| `DEMO0004` | `EN_PREPARACION` | Sabores del Puerto |
+
+Para desactivar los datos de demostración, quitar `classpath:data-demo.sql` de `spring.sql.init.data-locations` en `application.properties`.
 
 La consola H2 está en `http://localhost:8080/h2-console`:
 

@@ -6,7 +6,7 @@
 
 -- Usuario operador de prueba
 INSERT INTO usuario (id, username, password_hash, nombre_completo, rol, activo)
-VALUES (2, 'operador', 'Operador2026!', 'Operador de Prueba', 'OPERADOR', TRUE);
+VALUES (2, 'operador', '$2a$10$gNJgyylRCAZE/ZcOSjyDy.WMwvdS3wBFWEkmErracd.ZpQetd/U0y', 'Operador de Prueba', 'OPERADOR', TRUE);
 ALTER TABLE usuario ALTER COLUMN id RESTART WITH 3;
 
 -- Locales: dos activos y uno inactivo

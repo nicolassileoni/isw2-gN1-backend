@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,8 +43,9 @@ public class UsuarioController {
 	}
 
 	@PutMapping("/{id}")
-	public UsuarioResponse actualizar(@PathVariable Integer id, @RequestBody ActualizarUsuarioRequest request) {
-		return usuarioService.actualizar(id, request);
+	public UsuarioResponse actualizar(@PathVariable Integer id, @RequestBody ActualizarUsuarioRequest request,
+			Authentication authentication) {
+		return usuarioService.actualizar(id, request, authentication == null ? null : authentication.getName());
 	}
 
 	@PatchMapping("/{id}/password")
@@ -54,7 +56,8 @@ public class UsuarioController {
 
 	@PatchMapping("/{id}/activo")
 	public UsuarioResponse cambiarActivo(@PathVariable Integer id,
-			@RequestBody(required = false) CambioActivoRequest request) {
-		return usuarioService.cambiarActivo(id, request == null ? null : request.activo());
+			@RequestBody(required = false) CambioActivoRequest request, Authentication authentication) {
+		return usuarioService.cambiarActivo(id, request == null ? null : request.activo(),
+				authentication == null ? null : authentication.getName());
 	}
 }

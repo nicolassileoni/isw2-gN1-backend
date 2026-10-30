@@ -2,6 +2,7 @@ package com.grupo1.saboresdellitoral.service;
 
 import java.util.List;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,9 +25,11 @@ public class UsuarioService {
 	private static final int PASSWORD_MAX = 60;
 
 	private final UsuarioRepository usuarioRepository;
+	private final PasswordEncoder passwordEncoder;
 
-	public UsuarioService(UsuarioRepository usuarioRepository) {
+	public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
 		this.usuarioRepository = usuarioRepository;
+		this.passwordEncoder = passwordEncoder;
 	}
 
 	@Transactional(readOnly = true)
@@ -51,7 +54,7 @@ public class UsuarioService {
 
 		Usuario usuario = new Usuario();
 		usuario.setUsername(username);
-		usuario.setPassword(password);
+		usuario.setPassword(passwordEncoder.encode(password));
 		usuario.setNombreCompleto(nombreCompleto);
 		usuario.setRol(rol);
 		usuario.setActivo(true);
@@ -60,14 +63,19 @@ public class UsuarioService {
 	}
 
 	@Transactional
-	public UsuarioResponse actualizar(Integer id, ActualizarUsuarioRequest request) {
+	public UsuarioResponse actualizar(Integer id, ActualizarUsuarioRequest request, String currentUsername) {
 		Usuario usuario = buscar(id);
 		if (request == null) {
 			throw new SolicitudInvalidaException("La solicitud es obligatoria");
 		}
 
+		Rol nuevoRol = validarRol(request.rol());
+		if (esMismoUsuario(usuario, currentUsername) && nuevoRol != Rol.ADMIN) {
+			throw new ReglaDeNegocioException("No podés quitarte el rol de administrador");
+		}
+
 		usuario.setNombreCompleto(normalizarNombre(request.nombreCompleto()));
-		usuario.setRol(validarRol(request.rol()));
+		usuario.setRol(nuevoRol);
 
 		return toResponse(usuarioRepository.save(usuario));
 	}
@@ -75,21 +83,28 @@ public class UsuarioService {
 	@Transactional
 	public UsuarioResponse cambiarPassword(Integer id, String password) {
 		Usuario usuario = buscar(id);
-		usuario.setPassword(validarPassword(password));
+		usuario.setPassword(passwordEncoder.encode(validarPassword(password)));
 
 		return toResponse(usuarioRepository.save(usuario));
 	}
 
 	@Transactional
-	public UsuarioResponse cambiarActivo(Integer id, Boolean activo) {
+	public UsuarioResponse cambiarActivo(Integer id, Boolean activo, String currentUsername) {
 		if (activo == null) {
 			throw new SolicitudInvalidaException("El campo activo es obligatorio");
 		}
 
 		Usuario usuario = buscar(id);
+		if (esMismoUsuario(usuario, currentUsername) && !Boolean.TRUE.equals(activo)) {
+			throw new ReglaDeNegocioException("No podés desactivar tu propio usuario");
+		}
 		usuario.setActivo(activo);
 
 		return toResponse(usuarioRepository.save(usuario));
+	}
+
+	private boolean esMismoUsuario(Usuario usuario, String currentUsername) {
+		return currentUsername != null && usuario.getUsername().equals(currentUsername);
 	}
 
 	private Usuario buscar(Integer id) {
